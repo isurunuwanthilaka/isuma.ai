@@ -119,7 +119,13 @@ export default function ProblemsManagement() {
       };
 
       if (formMode === 'create') {
-        body.createdBy = 'admin-user-id';
+        const adminUser = await fetch('/api/admin/user').then(r => r.json());
+        if (adminUser.error) {
+          setError('Unable to identify admin user. Please login as admin.');
+          setSubmitting(false);
+          return;
+        }
+        body.createdBy = adminUser.id;
       }
 
       const response = await fetch(url, {
