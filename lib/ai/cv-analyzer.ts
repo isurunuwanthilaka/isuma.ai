@@ -1,8 +1,4 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { llmClient } from './llm-client';
 
 export interface CvAnalysisResult {
   skills: string[];
@@ -27,9 +23,8 @@ ${cvText}
 
 Return only valid JSON with these exact fields.`;
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
+  const response = await llmClient.chat(
+    [
       {
         role: 'system',
         content: 'You are an expert HR analyst. Analyze CVs and return structured JSON data.',
@@ -39,15 +34,13 @@ Return only valid JSON with these exact fields.`;
         content: prompt,
       },
     ],
-    response_format: { type: 'json_object' },
-    temperature: 0.3,
-  });
+    {
+      jsonMode: true,
+      temperature: 0.3,
+    }
+  );
 
-  const content = response.choices[0].message.content;
-  if (!content) {
-    throw new Error('No response from OpenAI');
-  }
-
-  const analysis = JSON.parse(content) as CvAnalysisResult;
+  const analysis = JSON.parse(response.content) as CvAnalysisResult;
   return analysis;
 }
+
