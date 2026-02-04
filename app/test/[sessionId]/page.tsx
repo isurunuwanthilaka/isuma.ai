@@ -17,6 +17,9 @@ interface CheatingEvent {
   timestamp: string;
 }
 
+// Constants
+const SNAPSHOT_INTERVAL_MS = 120000; // 2 minutes
+
 export default function TestPage() {
   const params = useParams();
   const router = useRouter();
@@ -169,7 +172,7 @@ export default function TestPage() {
     if (!cameraPermissionGranted) return;
 
     captureSnapshot();
-    snapshotIntervalRef.current = setInterval(captureSnapshot, 120000);
+    snapshotIntervalRef.current = setInterval(captureSnapshot, SNAPSHOT_INTERVAL_MS);
 
     return () => {
       if (snapshotIntervalRef.current) {

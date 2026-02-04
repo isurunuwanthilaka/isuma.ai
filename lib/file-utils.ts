@@ -1,12 +1,7 @@
 import { writeFile, mkdir } from 'fs/promises';
-import { join, extname } from 'path';
+import { join } from 'path';
 import { existsSync } from 'fs';
-
-function sanitizeFilename(filename: string): string {
-  const ext = extname(filename);
-  const base = filename.replace(ext, '').replace(/[^a-zA-Z0-9-_]/g, '_');
-  return `${base}${ext}`;
-}
+import sanitize from 'sanitize-filename';
 
 export async function saveFile(file: File, userId: string): Promise<string> {
   const bytes = await file.arrayBuffer();
@@ -19,7 +14,7 @@ export async function saveFile(file: File, userId: string): Promise<string> {
   }
 
   const timestamp = Date.now();
-  const safeName = sanitizeFilename(file.name);
+  const safeName = sanitize(file.name);
   const fileName = `${userId}_${timestamp}_${safeName}`;
   const filePath = join(uploadsDir, fileName);
 

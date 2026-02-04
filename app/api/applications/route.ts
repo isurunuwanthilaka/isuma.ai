@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { saveFile } from '@/lib/file-utils';
 import { analyzeCv } from '@/lib/ai/cv-analyzer';
 import bcrypt from 'bcryptjs';
-import { PDFParse } from 'pdf-parse';
+import * as pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export async function POST(request: NextRequest) {
@@ -52,8 +52,7 @@ export async function POST(request: NextRequest) {
     
     try {
       if (fileType === 'application/pdf') {
-        const parser = new PDFParse({ data: buffer });
-        const pdfData = await parser.getText();
+        const pdfData = await (pdfParse as any).default(buffer);
         cvText = pdfData.text;
       } else if (
         fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
