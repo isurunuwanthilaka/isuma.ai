@@ -1,5 +1,8 @@
 # Isuma.ai - AI-Powered Hiring Platform
 
+![Build Status](https://github.com/isurunuwanthilaka/isuma.ai/workflows/UI%20Build%20Validation/badge.svg)
+![PR Checks](https://github.com/isurunuwanthilaka/isuma.ai/workflows/PR%20Checks/badge.svg)
+
 An intelligent hiring platform with AI-powered CV analysis, timed coding assessments, and advanced anti-cheating detection using multimodal AI.
 
 ## Features
@@ -205,9 +208,48 @@ The platform uses LLMs to analyze uploaded CVs and extract:
 - Automatic submission on timeout
 - Code execution and testing
 
+## CI/CD
+
+The project uses GitHub Actions for automated quality checks:
+
+### Automated Workflows
+
+1. **UI Build Validation** - Runs on push to main/develop branches and PRs
+   - Tests build on Node.js 18.x and 20.x
+   - TypeScript type checking
+   - ESLint validation
+   - Production build verification
+   - Uploads build artifacts
+
+2. **PR Checks** - Quick validation on all pull requests
+   - TypeScript type checking
+   - Code linting
+   - Formatting validation (if configured)
+
+### Running Checks Locally
+
+```bash
+# Type check
+npx tsc --noEmit
+
+# Lint
+npm run lint
+
+# Build
+npm run build
+```
+
+See [.github/workflows/README.md](.github/workflows/README.md) for detailed workflow documentation.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+**Before submitting:**
+1. Ensure all CI checks pass locally
+2. Run `npm run lint` to check code quality
+3. Run `npm run build` to verify build succeeds
+4. Update documentation if needed
 
 ## License
 
