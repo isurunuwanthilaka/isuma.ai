@@ -89,6 +89,10 @@ LLM_PROVIDER=openai
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
+
+# Supabase Storage (Required for file uploads)
+SUPABASE_URL=https://[YOUR-PROJECT-REF].supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ### Generate NEXTAUTH_SECRET:
@@ -98,28 +102,31 @@ openssl rand -base64 32
 
 ## Step 5: Configure File Storage
 
-By default, files are stored locally which won't work on Vercel (serverless).
+The application uses Supabase Storage for file uploads in production (Vercel).
 
-### Option A: Use Supabase Storage
+### Set up Supabase Storage
 
-1. Enable Storage in Supabase dashboard
-2. Create a bucket called `uploads`
-3. Update `lib/file-utils.ts` to use Supabase Storage SDK
-4. Add environment variable:
+1. Follow the detailed guide: [SUPABASE_STORAGE_SETUP.md](./SUPABASE_STORAGE_SETUP.md)
+
+Quick steps:
+1. Go to Supabase Dashboard → Storage
+2. Create two public buckets:
+   - `uploads` (for CV files)
+   - `snapshots` (for camera snapshots)
+3. Get your Supabase credentials from Project Settings → API:
+   - Project URL
+   - Anon/Public Key
+
+### Add Storage Environment Variables
+
+Add these to Vercel:
+
 ```env
 SUPABASE_URL=https://[YOUR-PROJECT-REF].supabase.co
-SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-### Option B: Use Vercel Blob Storage
-
-1. Enable Vercel Blob in your project settings
-2. Install Vercel Blob SDK:
-```bash
-npm install @vercel/blob
-```
-3. Update `lib/file-utils.ts` to use Vercel Blob
-4. Vercel automatically provides `BLOB_READ_WRITE_TOKEN`
+The application automatically uses Supabase Storage when running on Vercel.
 
 ## Step 6: Verify Deployment
 
