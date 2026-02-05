@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          String    @default("candidate") // candidate, recruiter, admin
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  applications  Application[]
+  testSessions  TestSession[]
+  createdProblems CodingProblem[]
+}
+
+model Application {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  position        String
+  cvUrl           String?
+  cvAnalysis      String?   // JSON string with AI analysis
+  coverLetter     String?
+  status          String    @default("pending") // pending, reviewing, interview, rejected, accepted
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  testSessions    TestSession[]
+}
+
+model CodingProblem {
+  id              String    @id @default(cuid())
+  title           String
+  description     String
+  difficulty      String    // easy, medium, hard
+  timeLimit       Int       // in minutes
+  testCases       String    // JSON string with test cases
+  starterCode     String?
+  createdBy       String
+  creator         User      @relation(fields: [createdBy], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  testSessions    TestSession[]
+}
+
+model TestSession {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  applicationId     String?
+  application       Application? @relation(fields: [applicationId], references: [id])
+  problemId         String
+  problem           CodingProblem @relation(fields: [problemId], references: [id])
+  
+  startTime         DateTime
+  endTime           DateTime?
+  timeRemaining     Int?      // in seconds
+  submittedCode     String?
+  status            String    @default("in_progress") // in_progress, completed, timed_out
+  score             Int?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  cheatingLogs      CheatingLog[]
+  cameraSnapshots   CameraSnapshot[]
+}
+
+model CheatingLog {
+  id              String    @id @default(cuid())
+  sessionId       String
+  session         TestSession @relation(fields: [sessionId], references: [id])
+  eventType       String    // copy_attempt, paste_attempt, tab_switch, window_blur, etc.
+  timestamp       DateTime  @default(now())
+  metadata        String?   // JSON string with additional data
+}
+
+model CameraSnapshot {
+  id              String    @id @default(cuid())
+  sessionId       String
+  session         TestSession @relation(fields: [sessionId], references: [id])
+  imageUrl        String
+  aiAnalysis      String?   // JSON string with multimodal LLM analysis
+  timestamp       DateTime  @default(now())
+  flagged         Boolean   @default(false)
+}
