@@ -136,12 +136,32 @@ An intelligent hiring platform with AI-powered CV analysis, timed coding assessm
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions on deploying to Vercel with Supabase.
 
-Quick summary:
-1. Create Supabase project and get DATABASE_URL
-2. Push schema: `npx prisma db push`
-3. Deploy to Vercel
-4. Configure environment variables on Vercel
-5. Set up file storage (Supabase Storage or Vercel Blob)
+### Quick Deployment Steps
+
+1. **Set up Supabase**
+   - Create a Supabase project
+   - Get `DATABASE_URL` from Project Settings → Database
+   - Run `npx prisma db push` to create tables
+   - Follow [SUPABASE_STORAGE_SETUP.md](./SUPABASE_STORAGE_SETUP.md) to create storage buckets
+
+2. **Deploy to Vercel**
+   - Push code to GitHub
+   - Import project in Vercel
+   - Add environment variables (see below)
+   - Deploy!
+
+3. **Required Environment Variables on Vercel**
+   ```env
+   DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+   NEXTAUTH_SECRET=<generate-with-openssl-rand-base64-32>
+   NEXTAUTH_URL=https://your-app.vercel.app
+   LLM_PROVIDER=openai
+   OPENAI_API_KEY=your-openai-api-key
+   SUPABASE_URL=https://[PROJECT-REF].supabase.co
+   SUPABASE_ANON_KEY=your-supabase-anon-key
+   ```
+
+For detailed deployment instructions and troubleshooting, see [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ## Project Structure
 
