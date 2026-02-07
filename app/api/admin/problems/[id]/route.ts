@@ -1,21 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/auth";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireRole(["admin", "recruiter"]);
+
     const { id } = await params;
     const body = await request.json();
-    const { title, description, difficulty, timeLimit, testCases, starterCode } = body;
+    const {
+      title,
+      description,
+      difficulty,
+      timeLimit,
+      testCases,
+      starterCode,
+    } = body;
 
     if (difficulty) {
-      const validDifficulties = ['easy', 'medium', 'hard'];
+      const validDifficulties = ["easy", "medium", "hard"];
       if (!validDifficulties.includes(difficulty)) {
         return NextResponse.json(
-          { error: 'Invalid difficulty level' },
-          { status: 400 }
+          { error: "Invalid difficulty level" },
+          { status: 400 },
         );
       }
     }
@@ -26,21 +36,20 @@ export async function PATCH(
     if (difficulty) updateData.difficulty = difficulty;
     if (timeLimit) updateData.timeLimit = parseInt(timeLimit);
     if (starterCode !== undefined) updateData.starterCode = starterCode;
-    
+
     if (testCases) {
       try {
-        const parsedTestCases = typeof testCases === 'string' 
-          ? JSON.parse(testCases) 
-          : testCases;
-        
+        const parsedTestCases =
+          typeof testCases === "string" ? JSON.parse(testCases) : testCases;
+
         if (!Array.isArray(parsedTestCases)) {
-          throw new Error('Test cases must be an array');
+          throw new Error("Test cases must be an array");
         }
         updateData.testCases = JSON.stringify(parsedTestCases);
       } catch (error) {
         return NextResponse.json(
-          { error: 'Invalid test cases format. Must be valid JSON array.' },
-          { status: 400 }
+          { error: "Invalid test cases format. Must be valid JSON array." },
+          { status: 400 },
         );
       }
     }
@@ -61,19 +70,21 @@ export async function PATCH(
 
     return NextResponse.json({ problem }, { status: 200 });
   } catch (error) {
-    console.error('Failed to update problem:', error);
+    console.error("Failed to update problem:", error);
     return NextResponse.json(
-      { error: 'Failed to update problem' },
-      { status: 500 }
+      { error: "Failed to update problem" },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    await requireRole(["admin", "recruiter"]);
+
     const { id } = await params;
 
     const testSessionCount = await prisma.testSession.count({
@@ -82,8 +93,8 @@ export async function DELETE(
 
     if (testSessionCount > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete problem with existing test sessions' },
-        { status: 400 }
+        { error: "Cannot delete problem with existing test sessions" },
+        { status: 400 },
       );
     }
 
@@ -92,14 +103,14 @@ export async function DELETE(
     });
 
     return NextResponse.json(
-      { success: true, message: 'Problem deleted successfully' },
-      { status: 200 }
+      { success: true, message: "Problem deleted successfully" },
+      { status: 200 },
     );
   } catch (error) {
-    console.error('Failed to delete problem:', error);
+    console.error("Failed to delete problem:", error);
     return NextResponse.json(
-      { error: 'Failed to delete problem' },
-      { status: 500 }
+      { error: "Failed to delete problem" },
+      { status: 500 },
     );
   }
 }

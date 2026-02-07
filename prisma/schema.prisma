@@ -8,13 +8,14 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String    @id @default(uuid())
+  supabaseId    String    @unique // Supabase Auth user ID
   email         String    @unique
   name          String?
-  password      String
   role          String    @default("candidate") // candidate, recruiter, admin
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
