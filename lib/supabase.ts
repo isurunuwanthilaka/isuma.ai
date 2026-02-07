@@ -5,7 +5,10 @@ const supabaseUrl =
 const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 let supabase: ReturnType<typeof createClient> | null = null;
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 
 export function getSupabaseClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -21,12 +24,33 @@ export function getSupabaseClient() {
   return supabase;
 }
 
+/**
+ * Get a Supabase client with the service role key.
+ * This bypasses Row Level Security and should only be used server-side.
+ */
+export function getSupabaseAdminClient() {
+  if (!supabaseUrl) {
+    throw new Error("Supabase URL not configured.");
+  }
+
+  const key = supabaseServiceRoleKey || supabaseAnonKey;
+  if (!key) {
+    throw new Error("No Supabase key available.");
+  }
+
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(supabaseUrl, key);
+  }
+
+  return supabaseAdmin;
+}
+
 export async function uploadToSupabase(
   file: File,
   userId: string,
   bucket: string = "uploads",
 ): Promise<string> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdminClient();
 
   const timestamp = Date.now();
   const fileExt = file.name.split(".").pop();
@@ -59,7 +83,7 @@ export async function uploadImageToSupabase(
   sessionId: string,
   bucket: string = "snapshots",
 ): Promise<string> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAdminClient();
 
   // Remove data URL prefix if present
   const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");

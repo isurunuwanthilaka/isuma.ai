@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { saveFile } from "@/lib/file-utils";
 import { analyzeCv } from "@/lib/ai/cv-analyzer";
-import * as pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +50,8 @@ export async function POST(request: NextRequest) {
 
     try {
       if (fileType === "application/pdf") {
-        const pdfData = await (pdfParse as any).default(buffer);
+        const parser = new PDFParse({ data: new Uint8Array(buffer) });
+        const pdfData = await parser.getText();
         cvText = pdfData.text;
       } else if (
         fileType ===
