@@ -44,10 +44,10 @@ jobs:
         env:
           # Set minimal env vars for build
           DATABASE_URL: "file:./dev.db"
-          NEXTAUTH_SECRET: "test-secret-for-build"
-          NEXTAUTH_URL: "http://localhost:3000"
           LLM_PROVIDER: "openai"
           OPENAI_API_KEY: "test-key"
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
       
       - name: Upload build artifacts
         if: success()

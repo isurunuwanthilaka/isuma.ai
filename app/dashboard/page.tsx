@@ -25,11 +25,6 @@ export default function RecruiterDashboard() {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
-  useEffect(() => {
-    fetchApplications();
-    fetchUser();
-  }, []);
-
   const fetchUser = async () => {
     const {
       data: { user },
@@ -39,16 +34,18 @@ export default function RecruiterDashboard() {
     }
   };
 
+  useEffect(() => {
+    fetchApplications();
+    fetchUser();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSignOut = async () => {
     await fetch("/api/auth/signout", { method: "POST" });
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
   };
-
-  useEffect(() => {
-    fetchApplications();
-  }, []);
 
   const fetchApplications = async () => {
     try {
