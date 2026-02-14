@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -25,32 +25,16 @@ export default function RecruiterDashboard() {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
-  useEffect(() => {
-    fetchApplications();
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
       setUserEmail(user.email || "");
     }
-  };
+  }, [supabase.auth]);
 
-  const handleSignOut = async () => {
-    await fetch("/api/auth/signout", { method: "POST" });
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  };
-
-  useEffect(() => {
-    fetchApplications();
-  }, []);
-
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/applications");
       if (response.ok) {
@@ -62,6 +46,18 @@ export default function RecruiterDashboard() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchApplications();
+    fetchUser();
+  }, [fetchApplications, fetchUser]);
+
+  const handleSignOut = async () => {
+    await fetch("/api/auth/signout", { method: "POST" });
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
   };
 
   const filteredApplications = applications.filter(
@@ -276,11 +272,10 @@ export default function RecruiterDashboard() {
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  filter === status
-                    ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25"
-                    : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${filter === status
+                  ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25"
+                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -365,13 +360,12 @@ export default function RecruiterDashboard() {
                             AI Score
                           </div>
                           <div
-                            className={`text-xl font-bold ${
-                              score >= 70
-                                ? "text-emerald-400"
-                                : score >= 50
-                                  ? "text-amber-400"
-                                  : "text-red-400"
-                            }`}
+                            className={`text-xl font-bold ${score >= 70
+                              ? "text-emerald-400"
+                              : score >= 50
+                                ? "text-amber-400"
+                                : "text-red-400"
+                              }`}
                           >
                             {score}
                             <span className="text-sm text-[var(--text-muted)]">
