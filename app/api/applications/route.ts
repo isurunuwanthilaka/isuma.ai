@@ -14,12 +14,24 @@ export async function POST(request: NextRequest) {
     const position = formData.get("position") as string;
     const coverLetter = formData.get("coverLetter") as string;
     const cvFile = formData.get("cv") as File;
+    const jobId = formData.get("jobId") as string | null;
 
     if (!name || !email || !position || !cvFile) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
+    }
+
+    // If jobId is provided, verify the job exists
+    if (jobId) {
+      const job = await prisma.job.findUnique({
+        where: { id: jobId },
+      });
+
+      if (!job) {
+        return NextResponse.json({ error: "Job not found" }, { status: 404 });
+      }
     }
 
     // Look up user by email — they may already exist from Supabase Auth signup
@@ -35,7 +47,7 @@ export async function POST(request: NextRequest) {
           supabaseId: `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           email,
           name,
-          role: "candidate",
+          role: "developer",
         },
       });
     }
@@ -80,6 +92,7 @@ export async function POST(request: NextRequest) {
     const application = await prisma.application.create({
       data: {
         userId: user.id,
+        jobId: jobId || undefined,
         position,
         cvUrl: cvFilePath,
         cvAnalysis,

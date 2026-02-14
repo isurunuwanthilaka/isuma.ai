@@ -16,24 +16,41 @@ model User {
   supabaseId    String    @unique // Supabase Auth user ID
   email         String    @unique
   name          String?
-  role          String    @default("candidate") // candidate, recruiter, admin
+  role          String    @default("developer") // developer, company, admin
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   applications  Application[]
   testSessions  TestSession[]
   createdProblems CodingProblem[]
+  postedJobs    Job[]     @relation("CompanyJobs")
+}
+
+model Job {
+  id              String    @id @default(cuid())
+  title           String
+  description     String
+  requirements    String?   // JSON string with job requirements
+  companyId       String
+  company         User      @relation("CompanyJobs", fields: [companyId], references: [id])
+  status          String    @default("active") // active, closed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  applications    Application[]
 }
 
 model Application {
   id              String    @id @default(cuid())
   userId          String
   user            User      @relation(fields: [userId], references: [id])
+  jobId           String
+  job             Job       @relation(fields: [jobId], references: [id])
   position        String
   cvUrl           String?
   cvAnalysis      String?   // JSON string with AI analysis
   coverLetter     String?
-  status          String    @default("pending") // pending, reviewing, interview, rejected, accepted
+  status          String    @default("pending") // pending, reviewing, test_assigned, rejected, accepted
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   

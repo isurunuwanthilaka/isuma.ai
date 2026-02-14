@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth";
 export async function GET() {
   try {
     // Require admin or recruiter role
-    await requireRole(["admin", "recruiter"]);
+    await requireRole(["admin", "recruiter", "company"]);
 
     const applications = await prisma.application.findMany({
       include: {
@@ -14,6 +14,12 @@ export async function GET() {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        job: {
+          select: {
+            id: true,
+            title: true,
           },
         },
         testSessions: {
@@ -46,7 +52,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     // Require admin or recruiter role
-    await requireRole(["admin", "recruiter"]);
+    await requireRole(["admin", "recruiter", "company"]);
 
     const body = await request.json();
     const { applicationId, status } = body;
@@ -61,7 +67,7 @@ export async function PATCH(request: NextRequest) {
     const validStatuses = [
       "pending",
       "reviewing",
-      "interview",
+      "test_assigned",
       "rejected",
       "accepted",
     ];

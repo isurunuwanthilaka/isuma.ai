@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+interface Job {
+  id: string;
+  title: string;
+  description: string;
+  requirements: string | null;
+}
 
 export default function NewApplicationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
+
+  const [job, setJob] = useState<Job | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -15,6 +26,21 @@ export default function NewApplicationPage() {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    if (jobId) {
+      // Fetch job details
+      fetch(`/api/jobs/${jobId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.job) {
+            setJob(data.job);
+            setFormData((prev) => ({ ...prev, position: data.job.title }));
+          }
+        })
+        .catch((err) => console.error("Error fetching job:", err));
+    }
+  }, [jobId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +52,9 @@ export default function NewApplicationPage() {
       formDataToSend.append("email", formData.email);
       formDataToSend.append("position", formData.position);
       formDataToSend.append("coverLetter", formData.coverLetter);
+      if (jobId) {
+        formDataToSend.append("jobId", jobId);
+      }
       if (cvFile) {
         formDataToSend.append("cv", cvFile);
       }
@@ -39,7 +68,7 @@ export default function NewApplicationPage() {
         alert(
           "Application submitted successfully! Check your email for next steps.",
         );
-        router.push("/");
+        router.push("/dashboard");
       } else {
         const error = await response.json();
         alert("Error: " + (error.message || "Failed to submit application"));
@@ -118,7 +147,7 @@ export default function NewApplicationPage() {
               AI-Powered Screening
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-gradient mb-3">
-              Apply Now
+              {job ? `Apply for ${job.title}` : "Apply Now"}
             </h1>
             <p className="text-[var(--text-secondary)]">
               Submit your application and let our AI analyze your profile
@@ -179,25 +208,33 @@ export default function NewApplicationPage() {
                 >
                   Position *
                 </label>
-                <select
-                  id="position"
-                  required
-                  value={formData.position}
-                  onChange={(e) =>
-                    setFormData({ ...formData, position: e.target.value })
-                  }
-                  className="input-dark"
-                >
-                  <option value="">Select a position</option>
-                  <option value="Frontend Developer">Frontend Developer</option>
-                  <option value="Backend Developer">Backend Developer</option>
-                  <option value="Full Stack Developer">
-                    Full Stack Developer
-                  </option>
-                  <option value="DevOps Engineer">DevOps Engineer</option>
-                  <option value="Data Scientist">Data Scientist</option>
-                  <option value="Mobile Developer">Mobile Developer</option>
-                </select>
+                {job ? (
+                  <div className="input-dark bg-[var(--bg-secondary)] cursor-not-allowed">
+                    {job.title}
+                  </div>
+                ) : (
+                  <select
+                    id="position"
+                    required
+                    value={formData.position}
+                    onChange={(e) =>
+                      setFormData({ ...formData, position: e.target.value })
+                    }
+                    className="input-dark"
+                  >
+                    <option value="">Select a position</option>
+                    <option value="Frontend Developer">
+                      Frontend Developer
+                    </option>
+                    <option value="Backend Developer">Backend Developer</option>
+                    <option value="Full Stack Developer">
+                      Full Stack Developer
+                    </option>
+                    <option value="DevOps Engineer">DevOps Engineer</option>
+                    <option value="Data Scientist">Data Scientist</option>
+                    <option value="Mobile Developer">Mobile Developer</option>
+                  </select>
+                )}
               </div>
 
               {/* CV Upload */}

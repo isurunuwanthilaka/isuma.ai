@@ -38,13 +38,13 @@ export default function Home() {
               href="/dashboard"
               className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium"
             >
-              Dashboard
+              For Developers
             </Link>
             <Link
               href="/admin"
               className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium"
             >
-              Admin
+              For Companies
             </Link>
             <Link
               href="/applications/new"
@@ -95,10 +95,10 @@ export default function Home() {
             style={{ animationDelay: "0.3s" }}
           >
             <Link
-              href="/applications/new"
+              href="/dashboard"
               className="btn-primary text-lg !py-4 !px-10 inline-flex items-center justify-center gap-2"
             >
-              <span>Get Started</span>
+              <span>Developer Login</span>
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -114,10 +114,10 @@ export default function Home() {
               </svg>
             </Link>
             <Link
-              href="/login"
+              href="/admin"
               className="btn-secondary text-lg !py-4 !px-10 inline-flex items-center justify-center gap-2"
             >
-              <span>Sign In</span>
+              <span>Company Login</span>
             </Link>
           </div>
         </div>

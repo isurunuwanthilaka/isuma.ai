@@ -1,0 +1,84 @@
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          },
+        },
+      },
+    );
+
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find the user in our database
+    const user = await prisma.user.findUnique({
+      where: { supabaseId: authUser.id },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Fetch all applications for this user
+    const applications = await prisma.application.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        job: {
+          include: {
+            company: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        testSessions: {
+          include: {
+            problem: {
+              select: {
+                id: true,
+                title: true,
+                difficulty: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ applications });
+  } catch (error) {
+    console.error("Error fetching my applications:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch applications" },
+      { status: 500 },
+    );
+  }
+}

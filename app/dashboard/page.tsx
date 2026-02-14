@@ -5,22 +5,52 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+interface Job {
+  id: string;
+  title: string;
+  description: string;
+  requirements: string | null;
+  company: {
+    name: string | null;
+    email: string;
+  };
+  createdAt: string;
+}
+
+interface TestSession {
+  id: string;
+  status: string;
+  score: number | null;
+  startTime: string;
+  endTime: string | null;
+  problem: {
+    id: string;
+    title: string;
+    difficulty: string;
+  };
+}
+
 interface Application {
   id: string;
   position: string;
   status: string;
   createdAt: string;
-  user: {
-    name: string | null;
-    email: string;
+  job: {
+    id: string;
+    title: string;
+    company: {
+      name: string | null;
+      email: string;
+    };
   };
-  cvAnalysis: string | null;
+  testSessions: TestSession[];
 }
 
-export default function RecruiterDashboard() {
-  const [applications, setApplications] = useState<Application[]>([]);
+export default function DeveloperDashboard() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [myApplications, setMyApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"jobs" | "applications">("jobs");
   const [userEmail, setUserEmail] = useState<string>("");
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
@@ -34,12 +64,24 @@ export default function RecruiterDashboard() {
     }
   }, [supabase.auth]);
 
-  const fetchApplications = useCallback(async () => {
+  const fetchJobs = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/applications");
+      const response = await fetch("/api/jobs");
       if (response.ok) {
         const data = await response.json();
-        setApplications(data.applications);
+        setJobs(data.jobs || []);
+      }
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    }
+  }, []);
+
+  const fetchMyApplications = useCallback(async () => {
+    try {
+      const response = await fetch("/api/applications/my");
+      if (response.ok) {
+        const data = await response.json();
+        setMyApplications(data.applications || []);
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
@@ -49,9 +91,10 @@ export default function RecruiterDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchApplications();
     fetchUser();
-  }, [fetchApplications, fetchUser]);
+    fetchJobs();
+    fetchMyApplications();
+  }, [fetchUser, fetchJobs, fetchMyApplications]);
 
   const handleSignOut = async () => {
     await fetch("/api/auth/signout", { method: "POST" });
@@ -60,15 +103,12 @@ export default function RecruiterDashboard() {
     router.refresh();
   };
 
-  const filteredApplications = applications.filter(
-    (app) => filter === "all" || app.status === filter,
-  );
-
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-amber-500/15 text-amber-400 border border-amber-500/20",
       reviewing: "bg-indigo-500/15 text-indigo-400 border border-indigo-500/20",
-      interview: "bg-violet-500/15 text-violet-400 border border-violet-500/20",
+      test_assigned:
+        "bg-violet-500/15 text-violet-400 border border-violet-500/20",
       accepted:
         "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20",
       rejected: "bg-red-500/15 text-red-400 border border-red-500/20",
@@ -78,23 +118,16 @@ export default function RecruiterDashboard() {
     );
   };
 
-  const getScore = (cvAnalysis: string | null): number | null => {
-    if (!cvAnalysis) return null;
-    try {
-      const analysis = JSON.parse(cvAnalysis);
-      return analysis.overall_fit_score || null;
-    } catch {
-      return null;
-    }
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: "Pending Review",
+      reviewing: "Under Review",
+      test_assigned: "Test Assigned",
+      accepted: "Accepted",
+      rejected: "Rejected",
+    };
+    return labels[status] || status;
   };
-
-  const statusCounts = applications.reduce(
-    (acc, app) => {
-      acc[app.status] = (acc[app.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
 
   if (loading) {
     return (
@@ -137,48 +170,10 @@ export default function RecruiterDashboard() {
             </Link>
             <span className="text-[var(--text-muted)] mx-2">/</span>
             <span className="text-[var(--text-secondary)] font-medium">
-              Dashboard
+              Developer Dashboard
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              href="/admin/problems"
-              className="btn-secondary !py-2 !px-4 text-sm inline-flex items-center gap-2"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                />
-              </svg>
-              Problems
-            </Link>
-            <Link
-              href="/admin"
-              className="btn-primary !py-2 !px-4 text-sm inline-flex items-center gap-2"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                />
-              </svg>
-              Admin
-            </Link>
             {userEmail && (
               <span className="text-sm text-[var(--text-muted)] hidden md:inline">
                 {userEmail}
@@ -207,202 +202,221 @@ export default function RecruiterDashboard() {
         </div>
       </nav>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Recruiter Dashboard</h1>
-          <p className="text-[var(--text-secondary)]">
-            Review and manage incoming job applications
-          </p>
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-1 w-fit">
+          <button
+            onClick={() => setActiveTab("jobs")}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
+              activeTab === "jobs"
+                ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Available Jobs
+          </button>
+          <button
+            onClick={() => setActiveTab("applications")}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
+              activeTab === "applications"
+                ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            My Applications
+          </button>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          {[
-            {
-              label: "Total",
-              count: applications.length,
-              color: "from-indigo-500 to-violet-500",
-            },
-            {
-              label: "Pending",
-              count: statusCounts["pending"] || 0,
-              color: "from-amber-500 to-orange-500",
-            },
-            {
-              label: "Reviewing",
-              count: statusCounts["reviewing"] || 0,
-              color: "from-blue-500 to-indigo-500",
-            },
-            {
-              label: "Interview",
-              count: statusCounts["interview"] || 0,
-              color: "from-violet-500 to-purple-500",
-            },
-            {
-              label: "Accepted",
-              count: statusCounts["accepted"] || 0,
-              color: "from-emerald-500 to-green-500",
-            },
-          ].map((stat, i) => (
-            <div key={i} className="bg-glass rounded-xl p-4 glow-ring">
-              <div className="text-sm text-[var(--text-muted)] mb-1">
-                {stat.label}
-              </div>
-              <div
-                className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
-              >
-                {stat.count}
-              </div>
+        {/* Jobs Board */}
+        {activeTab === "jobs" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                Browse Open Positions
+              </h2>
+              <span className="text-sm text-[var(--text-muted)]">
+                {jobs.length} {jobs.length === 1 ? "job" : "jobs"} available
+              </span>
             </div>
-          ))}
-        </div>
 
-        {/* Filters */}
-        <div className="bg-glass rounded-xl p-4 mb-6 glow-ring">
-          <div className="flex gap-2 flex-wrap">
-            {[
-              "all",
-              "pending",
-              "reviewing",
-              "interview",
-              "accepted",
-              "rejected",
-            ].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${filter === status
-                  ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25"
-                  : "bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
-                  }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Applications List */}
-        <div className="space-y-4">
-          {filteredApplications.length === 0 ? (
-            <div className="bg-glass rounded-xl p-12 text-center glow-ring">
-              <div className="text-4xl mb-4">📭</div>
-              <p className="text-[var(--text-muted)]">No applications found</p>
-            </div>
-          ) : (
-            filteredApplications.map((app) => {
-              const score = getScore(app.cvAnalysis);
-              return (
-                <div
-                  key={app.id}
-                  className="bg-glass rounded-xl p-6 card-glow glow-ring-hover transition-all duration-300 hover:translate-y-[-2px]"
+            {jobs.length === 0 ? (
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-12 text-center">
+                <svg
+                  className="w-16 h-16 mx-auto mb-4 text-[var(--text-muted)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-semibold text-sm">
-                          {(app.user.name || "U")[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold">
-                            {app.user.name || "N/A"}
-                          </h3>
-                          <p className="text-sm text-[var(--text-muted)]">
-                            {app.user.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                          <svg
-                            className="w-4 h-4 text-[var(--text-muted)]"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {app.position}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {new Date(app.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                  No jobs available yet
+                </h3>
+                <p className="text-[var(--text-secondary)]">
+                  Check back later for new opportunities
+                </p>
+              </div>
+            ) : (
+              jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6 hover:border-indigo-500/30 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+                        {job.title}
+                      </h3>
+                      <p className="text-sm text-[var(--text-muted)]">
+                        Posted by {job.company.name || job.company.email}
+                      </p>
                     </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}
-                      >
-                        {app.status}
-                      </span>
-                      {score !== null && (
-                        <div className="text-right">
-                          <div className="text-xs text-[var(--text-muted)] mb-0.5">
-                            AI Score
-                          </div>
-                          <div
-                            className={`text-xl font-bold ${score >= 70
-                              ? "text-emerald-400"
-                              : score >= 50
-                                ? "text-amber-400"
-                                : "text-red-400"
-                              }`}
-                          >
-                            {score}
-                            <span className="text-sm text-[var(--text-muted)]">
-                              /100
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-[var(--border-color)]">
                     <Link
-                      href={`/admin?applicationId=${app.id}`}
-                      className="inline-flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-medium text-sm transition-colors"
+                      href={`/applications/new?jobId=${job.id}`}
+                      className="btn-primary !py-2 !px-4 text-sm"
                     >
-                      View Details
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 7l5 5m0 0l-5 5m5-5H6"
-                        />
-                      </svg>
+                      Apply Now
                     </Link>
                   </div>
+                  <p className="text-[var(--text-secondary)] mb-4">
+                    {job.description}
+                  </p>
+                  {job.requirements && (
+                    <div className="text-sm text-[var(--text-muted)]">
+                      <span className="font-medium">Requirements:</span>{" "}
+                      {job.requirements}
+                    </div>
+                  )}
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* My Applications */}
+        {activeTab === "applications" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                My Applications
+              </h2>
+              <span className="text-sm text-[var(--text-muted)]">
+                {myApplications.length}{" "}
+                {myApplications.length === 1 ? "application" : "applications"}
+              </span>
+            </div>
+
+            {myApplications.length === 0 ? (
+              <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-12 text-center">
+                <svg
+                  className="w-16 h-16 mx-auto mb-4 text-[var(--text-muted)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                  No applications yet
+                </h3>
+                <p className="text-[var(--text-secondary)] mb-4">
+                  Start applying to jobs to see them here
+                </p>
+                <button
+                  onClick={() => setActiveTab("jobs")}
+                  className="btn-primary"
+                >
+                  Browse Jobs
+                </button>
+              </div>
+            ) : (
+              myApplications.map((app) => (
+                <div
+                  key={app.id}
+                  className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-[var(--text-primary)] mb-1">
+                        {app.job.title}
+                      </h3>
+                      <p className="text-sm text-[var(--text-muted)]">
+                        {app.job.company.name || app.job.company.email}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}
+                    >
+                      {getStatusLabel(app.status)}
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-[var(--text-muted)] mb-4">
+                    Applied on {new Date(app.createdAt).toLocaleDateString()}
+                  </div>
+
+                  {/* Test Sessions */}
+                  {app.testSessions && app.testSessions.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-2">
+                        Coding Assignments:
+                      </h4>
+                      {app.testSessions.map((session) => (
+                        <div
+                          key={session.id}
+                          className="flex items-center justify-between bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                session.status === "completed"
+                                  ? "bg-emerald-500"
+                                  : session.status === "in_progress"
+                                    ? "bg-amber-500"
+                                    : "bg-gray-500"
+                              }`}
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text-primary)]">
+                                {session.problem.title}
+                              </p>
+                              <p className="text-xs text-[var(--text-muted)]">
+                                {session.problem.difficulty} •{" "}
+                                {session.status === "completed"
+                                  ? `Score: ${session.score || 0}%`
+                                  : session.status}
+                              </p>
+                            </div>
+                          </div>
+                          {session.status !== "completed" && (
+                            <Link
+                              href={`/test/${session.id}`}
+                              className="btn-primary !py-1.5 !px-4 text-sm"
+                            >
+                              Start Test
+                            </Link>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
